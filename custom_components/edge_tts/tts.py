@@ -153,7 +153,7 @@ class EdgeTTSEntity(TextToSpeechEntity):
     async def _process_tts_stream(self, request: TTSAudioRequest) -> AsyncGenerator[bytes]:
         """Generate speech from an incoming message."""
         _LOGGER.debug("Starting TTS Stream with options: %s", request.options)
-        separators = "\n。.，,；;！!？?、"
+        separators = ["\n", "。", ". ", "，", ", ", "；", "; ", "！", "! ", "？", "? ", "、"]
         buffer = ""
         count = 0
         async for message in request.message_gen:
@@ -163,8 +163,10 @@ class EdgeTTSEntity(TextToSpeechEntity):
             for char in message:
                 buffer += char
                 msg = buffer.strip()
-                if len(msg) >= min_len and char in separators:
-                    yield await self.async_process_tts_audio(msg, request.language, request.options)
+                if len(msg) < min_len:
+                    continue
+                if char in separators or buffer[-2:] in separators:
                     buffer = ""
+                    yield await self.async_process_tts_audio(msg, request.language, request.options)
         if msg := buffer.strip():
             yield await self.async_process_tts_audio(msg, request.language, request.options)
